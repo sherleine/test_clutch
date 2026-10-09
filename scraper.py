@@ -54,7 +54,7 @@ def build_page_url(base_url: str, page_number: int) -> str:
     return f"{base_url}{'&' if '?' in base_url else '?'}page={page_number}"
 
 
-def get_total_pages(html: str, fallback: int = 165) -> int:
+def get_total_pages(html: str, fallback: int = 1) -> int:
     soup = BeautifulSoup(html, "lxml")
     pagination = soup.select_one(".providers-pagination")
     if not pagination:
@@ -150,7 +150,7 @@ class Scraper:
 
     def fetch_page(self, url: str) -> str:
         response = self.session.get(url, timeout=30)
-        if response.headers.get("Cf-Mitigated") == "challenge" or "Just a moment" in response.text[:500]:
+        if response.headers.get("Cf-Mitigated", "").lower() == "challenge" or "Just a moment" in response.text[:500]:
             raise CloudflareChallengeError(
                 f"An anti-bot challenge was returned for {url}. Stop requests and use an approved access method."
             )
