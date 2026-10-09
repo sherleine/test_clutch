@@ -1,23 +1,20 @@
 """Scrape Clutch's AI development company directory into CSV and JSONL.
 
-This independent entry point avoids dependencies on scoring.py and the outreach
-workbook template used by the legacy tracker. Stop if an anti-bot challenge is
-returned; do not attempt to bypass it.
+Independent entry point: it does not depend on scoring.py or the outreach
+workbook template used by the legacy tracker. Stops on access challenges.
 """
 from __future__ import annotations
 
 import argparse
 import csv
 import json
-import re
+import random
 import sys
 import time
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse, parse_qs
 
 import requests
-from bs4 import BeautifulSoup
 
 from scraper import (
     CloudflareChallengeError,
@@ -121,7 +118,6 @@ def scrape(max_pages: int | None, min_delay: float, max_delay: float, reset: boo
     total_pages = get_total_pages(first_html, fallback=1)
     if max_pages is not None:
         total_pages = min(total_pages, max_pages)
-    # Keep first page HTML so it doesn't need a second request.
     start_page = max(1, load_checkpoint() + 1)
     print(f"Target pages this run: {total_pages}; starting at page {start_page}")
     if start_page > total_pages:
@@ -142,14 +138,13 @@ def scrape(max_pages: int | None, min_delay: float, max_delay: float, reset: boo
 
         rows = extract_company_rows(html, url, page)
         if not rows:
-            # Do not silently claim success when page markup may have changed.
             print(f"Warning: page {page} yielded zero company cards. Check markup/access before continuing.")
         append_jsonl(rows)
         save_checkpoint(page)
         print(f"Page {page}/{total_pages}: extracted {len(rows)} cards")
 
         if page < total_pages:
-            time.sleep(min_delay if min_delay == max_delay else min_delay + (max_delay - min_delay) * 0.5)
+            time.sleep(random.uniform(min_delay, max_delay))
 
     rows = load_rows()
     export_csv(rows)
